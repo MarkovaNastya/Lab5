@@ -31,7 +31,7 @@ public class App {
     private final static String SERVER_ONLINE_MESSAGE = "Server online at http://localhost:8080/\nPress RETURN to stop...";
 
     private final static String ROUTES = "routes";
-    private final static String LOCALHOST = "locahost";
+    private final static String LOCALHOST = "localhost";
     private final static int LOCALHOST_PORT = 8080;
 
     private final static String TEST_URL_PARAM = "testUrl";
