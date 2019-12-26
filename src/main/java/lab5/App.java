@@ -83,8 +83,30 @@ public class App {
                                         return CompletableFuture.completedFuture((int)actorAnswer);
                                     }
 
-
-                                })
+                                    return Source.from(Collections.singletonList(pair))
+                                            .toMat(
+                                                    Flow.<Pair<HttpRequest, Integer>>create()
+                                                    .mapConcat(p ->
+                                                            Collections.nCopies(
+                                                                    p.second(),
+                                                                    p.first()
+                                                            )
+                                                    )
+                                                    .mapAsync(1, req2 -> {
+                                                        return CompletableFuture.supplyAsync( () -> System.currentTimeMillis())
+                                                                .thenCompose(startTime ->
+                                                                        CompletableFuture.supplyAsync( () -> {
+                                                                            CompletionStage<Long> whenResponse = asyncHttpClient()
+                                                                                    .prepareGet(req2.getUri().toString())
+                                                                                    .execute()
+                                                                                    .toCompletableFuture()
+                                                                                    .thenCompose(answer -> CompletableFuture.completedFuture(System.currentTimeMillis() - startTime));
+                                                                            return whenResponse;
+                                                                        }))
+                                                    })
+                                            )
+                                }
+                                )
                             })
 
 
