@@ -39,6 +39,7 @@ public class App {
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = Flow.of(HttpRequest.class).map(
                 req -> {
 
+                    String url = req.getUri().
                 }
         );
         //<вызов метода которому передаем Http, ActorSystem и ActorMaterializer>;
