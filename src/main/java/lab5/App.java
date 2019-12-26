@@ -16,6 +16,7 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.japi.Pair;
 import akka.util.ByteString;
+import scala.Int;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
@@ -35,6 +36,7 @@ import static akka.actor.TypedActor.context;
 public class App {
 
     private final static int TIME_DURATION_MILLS = 5000;
+    private final static int ZERO = 0;
 
     public static void main(String[] args) throws IOException {
         System.out.println("start!");
@@ -52,13 +54,6 @@ public class App {
 
                     String url = req.getUri().query().get("testUrl").orElse("");
                     String count = req.getUri().query().get("count").orElse("");
-
-                    if (url.isEmpty()) {
-
-                    }
-                    if (count.isEmpty()) {
-
-                    }
 
                     Integer countInteger = Integer.parseInt(count);
 
@@ -82,6 +77,12 @@ public class App {
                                     if ((int)actorAnswer != -1) {
                                         return CompletableFuture.completedFuture((int)actorAnswer);
                                     }
+
+                                    Sink<CompletionStage<Long>, CompletionStage<Integer>> fold = Sink
+                                            .fold(ZERO, (ac, el) -> {
+                                                int testEl = (int) (ZERO + el.toCompletableFuture().get());
+                                                return ac + testEl;
+                                            });
 
                                     return Source.from(Collections.singletonList(pair))
                                             .toMat(
@@ -109,19 +110,33 @@ public class App {
                                                     Keep.right()
                                             )
                                             .run(materializer);
-                                }).thenCompose(
+                                }).thenCompose(sum -> {
+                                    Patterns.ask(
+                                            dataActor,
+                                            new PutMsg(
+                                                    new javafx.util.Pair<>(
+                                                            reqInfo.first(),
+                                                            new javafx.util.Pair<>(
+                                                                    reqInfo.second(),
+                                                                    sum
+                                                            )
+                                                    )
+                                            ),
+                                            TIME_DURATION_MILLS
+                                    );
+                                    Double averageTime = (double) (sum / countInteger);
+                                    return CompletableFuture.completedFuture(HttpResponse.create()
+                                            .withEntity("Average delay " + averageTime.toString()));
+                                        }
+                                );
+                            });
 
-                                )
-                            })
-
-
-
-
-
-
+                    CompletionStage<HttpResponse> result = source.via(testSink)
+                            .toMat(Sink.last(), Keep.right())
+                            .run(materializer);
+                    return result.toCompletableFuture().get();
                 }
         );
-        //<вызов метода которому передаем Http, ActorSystem и ActorMaterializer>;
 
 
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
