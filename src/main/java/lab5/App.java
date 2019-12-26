@@ -15,34 +15,39 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.japi.Pair;
-import akka.util.ByteString;
-import scala.Int;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
-
-import static akka.actor.TypedActor.context;
 
 public class App {
 
+    private final static String WELCOME_MESSAGE = "start!";
+    private final static String SERVER_ONLINE_MESSAGE = "Server online at http://localhost:8080/\nPress RETURN to stop...";
+
+    private final static String ROUTES = "routes";
+    private final static String LOCALHOST = "locahost";
+    private final static int LOCALHOST_PORT = 8080;
+
+    private final static String TEST_URL_PARAM = "testUrl";
+    private final static String COUNT_PARAM = "count";
+    private final static String EMPTY_STRING_PARAM = "";
+    private final static String AVERAGE_DELAY = "Average delay ";
     private final static int TIME_DURATION_MILLS = 5000;
+    private final static int PARALLELISM_TRUE = 1;
     private final static int ZERO = 0;
+    private final static int RESULT_NOT_YET_COUNTED = -1;
+
 
     public static void main(String[] args) throws IOException {
-        System.out.println("start!");
-        ActorSystem system = ActorSystem.create("routes");
+        System.out.println(WELCOME_MESSAGE);
+        ActorSystem system = ActorSystem.create(ROUTES);
 
-        Props props;
         ActorRef dataActor = system.actorOf(Props.create(ActorData.class));
 
 
@@ -52,8 +57,8 @@ public class App {
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = Flow.of(HttpRequest.class).map(
                 req -> {
 
-                    String url = req.getUri().query().get("testUrl").orElse("");
-                    String count = req.getUri().query().get("count").orElse("");
+                    String url = req.getUri().query().get(TEST_URL_PARAM).orElse(EMPTY_STRING_PARAM);
+                    String count = req.getUri().query().get(COUNT_PARAM).orElse(EMPTY_STRING_PARAM);
 
                     Integer countInteger = Integer.parseInt(count);
 
@@ -63,7 +68,7 @@ public class App {
 
                     Flow<Pair<String, Integer>, HttpResponse, NotUsed>  testSink = Flow.<Pair<String, Integer>>create()
                             .map(pair -> new Pair<>(HttpRequest.create().withUri(pair.first()), pair.second()))
-                            .mapAsync(1, pair -> {
+                            .mapAsync(PARALLELISM_TRUE, pair -> {
                                 return Patterns.ask(
                                         dataActor,
                                         new GetMsg(
@@ -74,7 +79,7 @@ public class App {
                                         ),
                                         Duration.ofMillis(TIME_DURATION_MILLS)
                                 ).thenCompose(actorAnswer -> {
-                                    if ((int)actorAnswer != -1) {
+                                    if ((int)actorAnswer != RESULT_NOT_YET_COUNTED) {
                                         return CompletableFuture.completedFuture((int)actorAnswer);
                                     }
 
@@ -126,7 +131,7 @@ public class App {
                                     );
                                     Double averageTime = (double) (sum / countInteger);
                                     return CompletableFuture.completedFuture(HttpResponse.create()
-                                            .withEntity("Average delay " + averageTime.toString()));
+                                            .withEntity(AVERAGE_DELAY + averageTime.toString()));
                                         }
                                 );
                             });
@@ -141,11 +146,11 @@ public class App {
 
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
                 routeFlow,
-                ConnectHttp.toHost("localhost", 8080),
+                ConnectHttp.toHost(LOCALHOST, LOCALHOST_PORT),
                 materializer
         );
 
-        System.out.println("Server online at http://localhost:8080/\nPress RETURN to stop...");
+        System.out.println(SERVER_ONLINE_MESSAGE);
         System.in.read();
 
         binding
