@@ -33,6 +33,9 @@ import java.util.concurrent.ExecutionException;
 import static akka.actor.TypedActor.context;
 
 public class App {
+
+    private final static int TIME_DURATION_MILLS = 5000;
+
     public static void main(String[] args) throws IOException {
         System.out.println("start!");
         ActorSystem system = ActorSystem.create("routes");
@@ -74,11 +77,13 @@ public class App {
                                                         reqInfo.second()
                                                 )
                                         ),
-                                        5000
+                                        Duration.ofMillis(TIME_DURATION_MILLS)
                                 ).thenCompose(actorAnswer -> {
                                     if ((int)actorAnswer != -1) {
                                         return CompletableFuture.completedFuture((int)actorAnswer);
                                     }
+
+
                                 })
                             })
 
