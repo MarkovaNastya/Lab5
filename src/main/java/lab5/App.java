@@ -7,16 +7,17 @@ import akka.actor.Props;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.AllDirectives;
-import akka.http.javadsl.server.Route;
+import akka.http.javadsl.model.*;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-import akka.japi.Pair;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.japi.Pair;
+import akka.util.ByteString;
 
+import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -35,6 +36,10 @@ public class App {
     public static void main(String[] args) throws IOException {
         System.out.println("start!");
         ActorSystem system = ActorSystem.create("routes");
+
+        Props props;
+        ActorRef dataActor = system.actorOf(Props.create(ActorData.class));
+
 
         final Http http = Http.get(system);
         final ActorMaterializer materializer = ActorMaterializer.create(system);
@@ -58,7 +63,25 @@ public class App {
 
                     Source<Pair<String, Integer>, NotUsed> source = Source.from(Collections.singletonList(reqInfo));
 
-                    Flow<Pair<String, Integer>, HttpResponse, NotUsed>  testSink = 
+                    Flow<Pair<String, Integer>, HttpResponse, NotUsed>  testSink = Flow.<Pair<String, Integer>>create()
+                            .map(pair -> new Pair<>(HttpRequest.create().withUri(pair.first()), pair.second()))
+                            .mapAsync(1, pair -> {
+                                return Patterns.ask(
+                                        dataActor,
+                                        new GetMsg(
+                                                new javafx.util.Pair<>(
+                                                        reqInfo.first(),
+                                                        reqInfo.second()
+                                                )
+                                        ),
+                                        5000
+                                ).thenCompose(actorAnswer -> {
+                                    if ((int)actorAnswer != -1) {
+                                        return CompletableFuture.completedFuture((int)actorAnswer);
+                                    }
+                                })
+                            })
+
 
 
 
