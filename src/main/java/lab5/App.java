@@ -49,6 +49,8 @@ public class App {
 
                     }
 
+                    Integer countInteger = Integer.parseInt(count);
+
                     
 
                 }
