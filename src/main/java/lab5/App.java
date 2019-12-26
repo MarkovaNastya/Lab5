@@ -14,13 +14,14 @@ import akka.http.javadsl.server.Route;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-import javafx.util.Pair;
+import akka.japi.Pair;
+import akka.stream.javadsl.Source;
 
 
-import javax.xml.transform.Source;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +56,9 @@ public class App {
 
                     Pair<String, Integer> reqInfo = new Pair<>(url, countInteger);
 
+                    Source<Pair<String, Integer>, NotUsed> source = Source.from(Collections.singletonList(reqInfo));
 
+                    Flow<Pair<String, Integer>, HttpResponse, NotUsed>  testSink = 
 
 
 
