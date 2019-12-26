@@ -102,10 +102,15 @@ public class App {
                                                                                     .toCompletableFuture()
                                                                                     .thenCompose(answer -> CompletableFuture.completedFuture(System.currentTimeMillis() - startTime));
                                                                             return whenResponse;
-                                                                        }))
+                                                                        })
+                                                                );
                                                     })
+                                                    .toMat(fold, Keep.right()),
+                                                    Keep.right()
                                             )
-                                }
+                                            .run(materializer);
+                                }).thenCompose(
+
                                 )
                             })
 
