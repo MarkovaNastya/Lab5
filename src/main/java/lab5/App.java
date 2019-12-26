@@ -52,7 +52,9 @@ public class App {
 
                     Integer countInteger = Integer.parseInt(count);
 
-                    Pair<String, Integer> 
+                    Pair<String, Integer> reqInfo = new Pair<>(url, countInteger);
+                    
+
 
 
 
